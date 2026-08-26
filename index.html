@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>다도 기록장</title>
+
+<!-- 구글 폰트 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gamja+Flower&family=Gaegu:wght@400;700&family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;700&family=Yeon+Sung&family=Dokdo&display=swap" rel="stylesheet">
+
+<!-- html2canvas 라이브러리 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+  :root{
+    --bg:#f6f3ee;
+    --card:#ffffff;
+    --border:#e2ddd2;
+    --border-strong:#c9c1b0;
+    --text:#2c2a24;
+    --text-sub:#797365;
+    --text-muted:#a39c8c;
+    --accent:#6b7a4f;
+    --accent-bg:#eef1e6;
+    --accent-text:#4a5636;
+    --danger:#b5533f;
+    --font-selected: 'Noto Sans KR', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; min-width: 0; }
+
+  body, input, select, textarea, button, span, label, div, p, h1, h2, h3 {
+    font-family: var(--font-selected) !important;
+  }
+
+  body {
+    margin:0; background:var(--bg); color:var(--text); padding-bottom:60px;
+  }
+  header { padding:20px 16px 12px; text-align:center; }
+  header h1 { font-size:28px; font-weight:700; margin:0 0 2px; }
+  header p { font-size:12px; color:var(--text-sub); margin:0; }
+
+  .wrap { max-width:480px; margin:0 auto; padding:0 14px; }
+
+  .card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:14px; padding:16px; margin-bottom:16px;
+  }
+  
+  .title-with-help {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 10px;
+  }
+  .section-title {
+    font-size:14px; font-weight:600; color:var(--text-sub); margin:0;
+  }
+  
+  /* 도움말 버튼 및 팝업 툴팁 */
+  .help-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--border-strong);
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    line-height: 1;
+    padding: 0;
+  }
+  .help-box {
+    display: none;
+    background: #fdfbf7;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 11.5px;
+    color: var(--text-sub);
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+  .help-box.show { display: block; }
+  .help-box ul { margin: 4px 0 0; padding-left: 16px; }
+
+  .row { display:grid; grid-template-columns:1fr; gap:10px; margin-bottom:12px; }
+  .row.two { grid-template-columns:1fr 1fr; }
+
+  label { font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px; }
+  
+  input[type=text], input[type=date], select, textarea {
+    width:100%; height:38px; border:1px solid var(--border-strong);
+    border-radius:8px; padding:0 8px; font-size:13px; background:#fff; color:var(--text);
+    box-sizing: border-box;
+  }
+  input[type=date] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    min-width: 0;
+  }
+  textarea { height:70px; padding:8px 10px; resize:vertical; }
+
+  .chip-group { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { position:relative; }
+  .chip input { position:absolute; opacity:0; width:100%; height:100%; cursor:pointer; }
+  .chip span {
+    display:inline-block; padding:6px 12px; font-size:12.5px;
+    border:1px solid var(--border-strong); border-radius:20px;
+    color:var(--text-sub); background:#fff;
+  }
+  .chip input:checked + span {
+    background:var(--accent-bg); border-color:var(--accent);
+    color:var(--accent-text); font-weight:600;
+  }
+
+  .slider-row { display:flex; align-items:center; gap:10px; }
+  input[type=range] { flex:1; height:6px; background:var(--border-strong); }
+  .slider-val { font-size:13px; font-weight:600; min-width:16px; color:var(--accent-text); }
+
+  .divider { border-top:1px solid var(--border); margin:14px 0; }
+
+  /* 탕색 팔레트 */
+  .color-swatches { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+  .swatch {
+    width:22px; height:22px; border-radius:50%; border:2px solid #fff;
+    outline:1px solid var(--border-strong); cursor:pointer;
+    flex-shrink: 0;
+  }
+  .color-custom-row { display:flex; gap:8px; align-items:center; }
+  .color-picker-wrap { position:relative; width:38px; height:38px; flex-shrink:0; }
+  .color-preview { position:absolute; inset:0; border-radius:50%; border:1px solid var(--border-strong); background:#e8b04b; }
+  .color-picker-wrap input[type=color] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+
+  /* 별점 */
+  .heart-row { display:flex; gap:6px; margin-bottom:12px; }
+  .heart { font-size:26px; cursor:pointer; color:#e2ddd2; user-select:none; }
+  .heart.active { color:var(--danger) !important; }
+
+  /* 버튼 */
+  button.save {
+    width:100%; height:44px; border:none; border-radius:10px;
+    background:var(--accent); color:#fff; font-size:15px; font-weight:600; cursor:pointer;
+  }
+  .capture-btn {
+    width:100%; height:40px; border:1px solid var(--border-strong); border-radius:10px;
+    background:#fff; color:var(--text-sub); font-size:13.5px; font-weight:600; cursor:pointer; margin-bottom:10px;
+  }
+
+  /* 지난 기록 */
+  .entry { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:10px; }
+  .entry-top { display:flex; justify-content:space-between; }
+  .entry-title { font-size:14.5px; font-weight:600; }
+  .entry-sub { font-size:12px; color:var(--text-muted); }
+  .entry-user { font-size:11px; background:var(--accent-bg); color:var(--accent-text); padding:2px 8px; border-radius:10px; }
+  .entry-tags { display:flex; flex-wrap:wrap; gap:5px; margin:6px 0; }
+  .tag { font-size:11px; padding:3px 8px; border-radius:20px; background:#f1efe8; color:var(--text-sub); }
+  .entry-grid { font-size:12.5px; color:var(--text-sub); display:grid; grid-template-columns:1fr 1fr; gap:4px 10px; margin:8px 0; }
+  .del-btn { border:none; background:none; color:var(--text-muted); font-size:12px; cursor:pointer; }
+  .empty { text-align:center; color:var(--text-muted); font-size:13px; padding:30px 0; }
+
+  /* -------------------------------------------------------------
+     [캡처 전용 템플릿 서식] 이미지 전용 깔끔한 리포트 카드 스타일
+  ------------------------------------------------------------- */
+  #capture-template-container {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+  }
+  .capture-card-wrap {
+    width: 440px;
+    background: #f5f3ed;
+    padding: 24px 20px;
+    box-sizing: border-box;
+  }
+  .capture-header-title {
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #333333;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .capture-item-card {
+    background: #ffffff;
+    border: 1px solid #e0dad0;
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    color: #333333;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .capture-item-card:last-child {
+    margin-bottom: 0;
+  }
+  .cap-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .cap-row:last-child {
+    margin-bottom: 0;
+  }
+  .cap-color-circle {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin: 0 4px 2px 2px;
+  }
+  .cap-heart-red {
+    color: #b84c32;
+    margin-right: 2px;
+  }
+  .cap-heart-gray {
+    color: #e0ded8;
+    margin-right: 2px;
+  }
+
+  /* 팝업 모달 */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.75); display:none;
+    justify-content:center; align-items:center; z-index:99999; padding:20px;
+  }
+  .modal-overlay.show { display:flex; }
+  .modal-content {
+    background:#fff; border-radius:14px; max-width:420px; width:100%;
+    max-height:85vh; padding:16px; text-align:center; overflow-y:auto;
+  }
+  .modal-content img { width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+  .modal-tip { font-size:13px; color:var(--accent-text); margin:12px 0 8px; font-weight:600; }
+  .modal-close-btn { width:100%; height:38px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-weight:600; cursor:pointer; }
+
+  .toast {
+    position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    background:var(--text); color:#fff; font-size:13px; padding:10px 18px; border-radius:20px;
+    opacity:0; pointer-events:none; transition:opacity .25s; z-index:9999;
+  }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🍵 다도 기록장</h1>
+  <p>매번 우린 차의 인상을 기록해요</p>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <label>글꼴 선택</label>
+    <select id="font-select">
+      <option value="'Noto Sans KR', sans-serif">기본체 (Noto Sans)</option>
+      <option value="'Gaegu', cursive">개구쟁이체 (Gaegu)</option>
+      <option value="'Yeon Sung', cursive">연성체 (Yeon Sung)</option>
+      <option value="'Gamja Flower', cursive">감자꽃체 (Gamja Flower)</option>
+      <option value="'Dokdo', cursive">독도체 (Dokdo)</option>
+      <option value="'Gowun Batang', serif">고운바탕체 (Gowun Batang)</option>
+    </select>
+  </div>
+
+  <!-- 작성 양식 메인 영역 -->
+  <div id="form-area">
+    <div class="card">
+      <p class="section-title" style="margin-bottom:10px;">기본 정보</p>
+      <div class="row two">
+        <div><label>작성자</label><input type="text" id="f-user" placeholder="이름/닉네임"></div>
+        <div><label>날짜</label><input type="date" id="f-date"></div>
+      </div>
+      
+      <!-- 차 종류 단독 한 줄 -->
+      <div class="row">
+        <div>
+          <label>차 종류</label>
+          <select id="f-type">
+            <option value="">선택</option>
+            <option>녹차</option><option>백차</option><option>황차</option>
+            <option>청차(우롱차)</option><option>홍차</option><option>흑차(보이차)</option>
+            <option>허브차</option><option>화차</option><option>기타</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 차 이름과 브랜드는 같은 줄, 각각 입력 분리 -->
+      <div class="row two">
+        <div><label>차 이름</label><input type="text" id="f-name" placeholder="예: 우전, 철관음"></div>
+        <div><label>브랜드</label><input type="text" id="f-brand" placeholder="예: OO다원"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="section-title" style="margin-bottom:10px;">탕색</p>
+      <div class="color-swatches" id="color-swatches"></div>
+      <div class="color-custom-row">
+        <div class="color-picker-wrap">
+          <div class="color-preview" id="f-color-preview"></div>
+          <input type="color" id="f-color-picker" value="#e8b04b">
+        </div>
+        <input type="text" id="f-color-label" placeholder="색상 이름 (팔레트 선택시 자동입력)">
+      </div>
+
+      <div class="divider"></div>
+      <p class="section-title" style="margin-bottom:10px;">엽저</p>
+      <input type="text" id="f-yeopjeo" placeholder="예: 균일한 갈색">
+    </div>
+
+    <div class="card">
+      <div class="title-with-help">
+        <p class="section-title">향 (다중 선택)</p>
+        <button type="button" class="help-btn" id="btn-help-aroma" title="향 용어 설명">?</button>
+      </div>
+
+      <!-- 향 선택 칩 순서와 동일하게 안내 배치 -->
+      <div class="help-box" id="help-box-aroma">
+        <b>💡 차 향 용어 안내</b>
+        <ul>
+          <li><b>청향:</b> 싱그럽고 풋풋한 풀/잎 향</li>
+          <li><b>밀향:</b> 달콤한 꿀이나 과실의 향</li>
+          <li><b>화향:</b> 난초, 난향 등 화사한 꽃향기</li>
+          <li><b>과소향:</b> 과일을 구운 듯한 달콤 고소한 향</li>
+          <li><b>연향:</b> 은은한 숯불/연기(훈제) 향</li>
+          <li><b>침향:</b> 침향나무나 고급 약재처럼 차분하고 그윽한 우디/약재 향</li>
+          <li><b>당향:</b> 설탕이나 엿기름처럼 은은하고 달콤한 조청/설탕 향</li>
+          <li><b>초당향:</b> 설탕을 살짝 태운 듯 쌉싸름하면서 짙은 카라멜/달고나 향</li>
+          <li><b>진향:</b> 오래 숙성된 차에서 느껴지는 묵직하고 깊은 보관/숙성 향</li>
+        </ul>
+      </div>
+
+      <div class="chip-group" id="group-aroma">
+        <label class="chip"><input type="checkbox" value="청향"><span>청향</span></label>
+        <label class="chip"><input type="checkbox" value="밀향"><span>밀향</span></label>
+        <label class="chip"><input type="checkbox" value="화향"><span>화향</span></label>
+        <label class="chip"><input type="checkbox" value="과소향"><span>과소향</span></label>
+        <label class="chip"><input type="checkbox" value="연향"><span>연향</span></label>
+        <label class="chip"><input type="checkbox" value="침향"><span>침향</span></label>
+        <label class="chip"><input type="checkbox" value="당향"><span>당향</span></label>
+        <label class="chip"><input type="checkbox" value="초당향"><span>초당향</span></label>
+        <label class="chip"><input type="checkbox" value="진향"><span>진향</span></label>
+      </div>
+
+      <div class="divider"></div>
+      <p class="section-title" style="margin-bottom:10px;">향 지속성</p>
+      <div class="slider-row">
+        <input type="range" id="f-aroma-persistence" min="1" max="5" step="1" value="1">
+        <span class="slider-val" id="f-aroma-persistence-val">1</span>
+      </div>
+
+      <div class="divider"></div>
+      <p class="section-title" style="margin-bottom:10px;">맛 (다중 선택)</p>
+      <div class="chip-group" id="group-taste">
+        <label class="chip"><input type="checkbox" value="단맛"><span>단맛</span></label>
+        <label class="chip"><input type="checkbox" value="쓴맛"><span>쓴맛</span></label>
+        <label class="chip"><input type="checkbox" value="신맛"><span>신맛</span></label>
+        <label class="chip"><input type="checkbox" value="감칠맛"><span>감칠맛</span></label>
+      </div>
+
+      <div class="divider"></div>
+      <p class="section-title" style="margin-bottom:10px;">질감</p>
+      <input type="text" id="f-texture" placeholder="예: 부드러움">
+
+      <div class="divider"></div>
+      <p class="section-title" style="margin-bottom:10px;">여운(회감)</p>
+      <input type="text" id="f-aftertaste" placeholder="예: 오래 지속됨">
+
+      <div class="divider"></div>
+      <p class="section-title" style="margin-bottom:10px;">떫은 정도</p>
+      <div class="slider-row">
+        <input type="range" id="f-astringency" min="1" max="5" step="1" value="1">
+        <span class="slider-val" id="f-astringency-val">1</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="section-title" style="margin-bottom:10px;">총평 / 메모</p>
+      <label>별점</label>
+      <div class="heart-row" id="rating-row">
+        <span class="heart" data-val="1">♥</span>
+        <span class="heart" data-val="2">♥</span>
+        <span class="heart" data-val="3">♥</span>
+        <span class="heart" data-val="4">♥</span>
+        <span class="heart" data-val="5">♥</span>
+      </div>
+      <textarea id="f-note" placeholder="전반적인 인상, 재구매 의사 등"></textarea>
+    </div>
+  </div>
+
+  <button type="button" class="capture-btn" id="btn-capture">📷 작성 화면 캡처하기</button>
+  <button type="button" class="save" id="btn-save">기록 저장하기</button>
+
+  <div class="divider" style="margin-top:22px;"></div>
+
+  <div style="display:flex; justify-content:space-between; align-items:center; margin:18px 0 10px;">
+    <p class="section-title" style="margin:0;">지난 기록</p>
+    <select id="filter-user" style="width:130px;">
+      <option value="all">전체 보기</option>
+    </select>
+  </div>
+
+  <div id="entry-list"></div>
+</div>
+
+<!-- 캡처 생성을 위한 숨겨진 템플릿 DOM -->
+<div id="capture-template-container">
+  <div class="capture-card-wrap" id="capture-render-target">
+    <div class="capture-header-title">
+      <span>🍵</span> <span>다도 기록장</span>
+    </div>
+    
+    <!-- 카드 1 (작성자/날짜, 차종류, 차이름/브랜드) -->
+    <div class="capture-item-card">
+      <div class="cap-row">
+        <span>작성자: <span id="cap-user">익명</span></span>
+        <span>날짜: <span id="cap-date">2026-08-25</span></span>
+      </div>
+      <div style="margin-bottom: 4px;">
+        차 종류: <span id="cap-type">미선택</span>
+      </div>
+      <div class="cap-row">
+        <span>차 이름: <span id="cap-name">-</span></span>
+        <span>브랜드: <span id="cap-brand">-</span></span>
+      </div>
+    </div>
+
+    <!-- 카드 2 -->
+    <div class="capture-item-card">
+      <div style="margin-bottom: 4px;">
+        탕색: <span class="cap-color-circle" id="cap-color-circle"></span><span id="cap-color-name">지정 안됨</span>
+      </div>
+      <div>
+        엽저: <span id="cap-yeopjeo">-</span>
+      </div>
+    </div>
+
+    <!-- 카드 3 -->
+    <div class="capture-item-card">
+      <div style="margin-bottom: 4px;">
+        향: <span id="cap-aroma">없음</span> (지속성: <span id="cap-aroma-persistence">1</span>/5)
+      </div>
+      <div style="margin-bottom: 4px;">
+        맛: <span id="cap-taste">없음</span> (떫은정도: <span id="cap-astringency">1</span>/5)
+      </div>
+      <div>
+        질감 / 여운: <span id="cap-texture">-</span> / <span id="cap-aftertaste">-</span>
+      </div>
+    </div>
+
+    <!-- 카드 4 -->
+    <div class="capture-item-card">
+      <div style="margin-bottom: 6px;">
+        별점: <span id="cap-hearts"></span>
+      </div>
+      <div>메모:</div>
+      <div id="cap-note" style="color:#555; font-size:14px; white-space:pre-wrap;">내용 없음</div>
+    </div>
+  </div>
+</div>
+
+<!-- 캡처 결과 팝업 모달 -->
+<div class="modal-overlay" id="modal-capture">
+  <div class="modal-content">
+    <img id="captured-img" src="" alt="캡처 이미지">
+    <div class="modal-tip">💡 이미지를 꾹 눌러 [사진 앱에 저장]하세요!</div>
+    <button type="button" class="modal-close-btn" id="modal-close">닫기</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// 폰트 선택 이벤트
+const fontSelect = document.getElementById('font-select');
+fontSelect.addEventListener('change', (e)=>{
+  document.documentElement.style.setProperty('--font-selected', e.target.value);
+});
+
+// 기본 날짜
+document.getElementById('f-date').valueAsDate = new Date();
+
+// 향 안내 도움말 토글 기능
+const btnHelpAroma = document.getElementById('btn-help-aroma');
+const helpBoxAroma = document.getElementById('help-box-aroma');
+btnHelpAroma.addEventListener('click', () => {
+  helpBoxAroma.classList.toggle('show');
+});
+
+// 슬라이더 숫자 동기화
+const sliderAroma = document.getElementById('f-aroma-persistence');
+const sliderAromaVal = document.getElementById('f-aroma-persistence-val');
+sliderAroma.addEventListener('input', () => sliderAromaVal.textContent = sliderAroma.value);
+
+const sliderAst = document.getElementById('f-astringency');
+const sliderAstVal = document.getElementById('f-astringency-val');
+sliderAst.addEventListener('input', () => sliderAstVal.textContent = sliderAst.value);
+
+// 탕색 팔레트
+const COLOR_PRESETS = [
+  {name:'연한 미황색', hex:'#f4ecc8'},
+  {name:'밝은 등황색', hex:'#e8b04b'},
+  {name:'진한 황금색', hex:'#d69a1f'},
+  {name:'귤색', hex:'#e07a2c'},
+  {name:'적갈색', hex:'#a85a2b'},
+  {name:'진한 홍색', hex:'#8c3b2e'},
+  {name:'밤색(흑차)', hex:'#5c3a21'},
+  {name:'연두빛 녹색', hex:'#a9b96a'}
+];
+
+const swatchWrap = document.getElementById('color-swatches');
+const colorPicker = document.getElementById('f-color-picker');
+const colorLabel = document.getElementById('f-color-label');
+const colorPreview = document.getElementById('f-color-preview');
+
+// 색상 선택 시 색상 및 추천 이름 자동 입력
+function updateColor(hex, name = ''){
+  colorPicker.value = hex;
+  colorPreview.style.backgroundColor = hex;
+  if(name) {
+    colorLabel.value = name; // 색상 이름 추천 반영
+  }
+}
+
+COLOR_PRESETS.forEach(c => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'swatch';
+  b.style.backgroundColor = c.hex;
+  b.title = c.name;
+  b.onclick = () => updateColor(c.hex, c.name);
+  swatchWrap.appendChild(b);
+});
+
+colorPicker.addEventListener('input', (e) => updateColor(e.target.value));
+
+// 별점
+let currentRating = 0;
+const heartEls = Array.from(document.querySelectorAll('#rating-row .heart'));
+heartEls.forEach(h => {
+  h.onclick = () => {
+    const v = Number(h.dataset.val);
+    currentRating = (currentRating === v) ? 0 : v;
+    heartEls.forEach(el => {
+      if (Number(el.dataset.val) <= currentRating) el.classList.add('active');
+      else el.classList.remove('active');
+    });
+  };
+});
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show'), 1800);
+}
+
+// 로컬스토리지 처리
+const STORAGE_KEY = 'dado_records_v1';
+function getRecords(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e) { return []; }
+}
+function saveRecords(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
+
+function renderRecords(){
+  const listEl = document.getElementById('entry-list');
+  const filterVal = document.getElementById('filter-user').value;
+  const records = getRecords();
+
+  const filterSelect = document.getElementById('filter-user');
+  const users = Array.from(new Set(records.map(r => r.user))).filter(Boolean);
+  filterSelect.innerHTML = '<option value="all">전체 보기</option>';
+  users.forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u; opt.textContent = u;
+    if(u === filterVal) opt.selected = true;
+    filterSelect.appendChild(opt);
+  });
+
+  const filtered = (filterVal === 'all') ? records : records.filter(r => r.user === filterVal);
+
+  if(filtered.length === 0){
+    listEl.innerHTML = '<div class="empty">아직 기록이 없어요. 첫 기록을 남겨보세요.</div>';
+    return;
+  }
+
+  listEl.innerHTML = filtered.map((r) => {
+    const heartsStr = '♥'.repeat(r.rating) + '♡'.repeat(5 - r.rating);
+    const aromas = r.aromas.map(a => `<span class="tag">#${a}</span>`).join(' ');
+    const tastes = r.tastes.map(t => `<span class="tag">#${t}</span>`).join(' ');
+
+    const nameBrandStr = [r.name, r.brand].filter(Boolean).join(' / ');
+
+    return `
+      <div class="entry">
+        <div class="entry-top">
+          <div>
+            <div class="entry-title">${r.type} ${nameBrandStr ? '('+nameBrandStr+')' : ''}</div>
+            <div class="entry-sub">${r.date}</div>
+          </div>
+          <div style="text-align:right;">
+            <span class="entry-user">${r.user}</span><br>
+            <button class="del-btn" onclick="deleteRecord(${r.id})" style="margin-top:4px;">삭제</button>
+          </div>
+        </div>
+        <div style="color:var(--danger); font-size:13px; margin-top:4px;">${heartsStr}</div>
+        <div class="entry-tags">${aromas} ${tastes}</div>
+        <div class="entry-grid">
+          <div>탕색: ${r.colorLabel || r.colorHex}</div>
+          <div>엽저: ${r.yeopjeo || '-'}</div>
+          <div>향지속성: ${r.aromaPersistence}/5</div>
+          <div>떫은정도: ${r.astringency}/5</div>
+          <div>질감: ${r.texture || '-'}</div>
+          <div>여운: ${r.aftertaste || '-'}</div>
+        </div>
+        ${r.note ? `<div style="font-size:13px; white-space:pre-wrap; margin-top:4px;">${r.note}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+window.deleteRecord = function(id){
+  let records = getRecords().filter(r => r.id !== id);
+  saveRecords(records);
+  renderRecords();
+  showToast('기록이 삭제되었습니다.');
+};
+
+document.getElementById('filter-user').addEventListener('change', renderRecords);
+
+document.getElementById('btn-save').onclick = () => {
+  const user = document.getElementById('f-user').value.trim();
+  const date = document.getElementById('f-date').value;
+  const type = document.getElementById('f-type').value;
+
+  if(!user || !date || !type){
+    showToast('작성자, 날짜, 차 종류는 필수입니다.');
+    return;
+  }
+
+  const aromaBoxes = document.querySelectorAll('#group-aroma input:checked');
+  const tasteBoxes = document.querySelectorAll('#group-taste input:checked');
+
+  const newRecord = {
+    id: Date.now(), user, date, type,
+    name: document.getElementById('f-name').value.trim(),
+    brand: document.getElementById('f-brand').value.trim(),
+    colorHex: colorPicker.value,
+    colorLabel: colorLabel.value.trim(),
+    yeopjeo: document.getElementById('f-yeopjeo').value.trim(),
+    aromas: Array.from(aromaBoxes).map(b => b.value),
+    aromaPersistence: sliderAroma.value,
+    tastes: Array.from(tasteBoxes).map(b => b.value),
+    texture: document.getElementById('f-texture').value.trim(),
+    aftertaste: document.getElementById('f-aftertaste').value.trim(),
+    astringency: sliderAst.value,
+    rating: currentRating,
+    note: document.getElementById('f-note').value.trim()
+  };
+
+  const records = getRecords();
+  records.unshift(newRecord);
+  saveRecords(records);
+  renderRecords();
+  showToast('기록이 저장되었습니다!');
+};
+
+// -----------------------------------------------------------------
+// 이미지 양식으로 캡처 생성
+// -----------------------------------------------------------------
+document.getElementById('btn-capture').onclick = async () => {
+  showToast('이미지 만드는 중...');
+
+  // 입력된 필드 값 추출
+  const user = document.getElementById('f-user').value.trim() || '익명';
+  const date = document.getElementById('f-date').value || new Date().toISOString().split('T')[0];
+  const type = document.getElementById('f-type').value || '미선택';
+  const name = document.getElementById('f-name').value.trim() || '-';
+  const brand = document.getElementById('f-brand').value.trim() || '-';
+  
+  const colorHex = colorPicker.value;
+  const colorName = colorLabel.value.trim() || '지정 안됨';
+  const yeopjeo = document.getElementById('f-yeopjeo').value.trim() || '-';
+
+  const selectedAromas = Array.from(document.querySelectorAll('#group-aroma input:checked')).map(cb => cb.value);
+  const aromaStr = selectedAromas.length > 0 ? selectedAromas.join(', ') : '없음';
+  const aromaPersistence = sliderAroma.value;
+
+  const selectedTastes = Array.from(document.querySelectorAll('#group-taste input:checked')).map(cb => cb.value);
+  const tasteStr = selectedTastes.length > 0 ? selectedTastes.join(', ') : '없음';
+  const astringency = sliderAst.value;
+
+  const texture = document.getElementById('f-texture').value.trim() || '-';
+  const aftertaste = document.getElementById('f-aftertaste').value.trim() || '-';
+
+  const note = document.getElementById('f-note').value.trim() || '내용 없음';
+
+  // 캡처 전용 DOM 요소에 데이터 채우기
+  document.getElementById('cap-user').textContent = user;
+  document.getElementById('cap-date').textContent = date;
+  document.getElementById('cap-type').textContent = type;
+  document.getElementById('cap-name').textContent = name;
+  document.getElementById('cap-brand').textContent = brand;
+
+  document.getElementById('cap-color-circle').style.backgroundColor = colorHex;
+  document.getElementById('cap-color-name').textContent = colorName;
+  document.getElementById('cap-yeopjeo').textContent = yeopjeo;
+
+  document.getElementById('cap-aroma').textContent = aromaStr;
+  document.getElementById('cap-aroma-persistence').textContent = aromaPersistence;
+
+  document.getElementById('cap-taste').textContent = tasteStr;
+  document.getElementById('cap-astringency').textContent = astringency;
+
+  document.getElementById('cap-texture').textContent = texture;
+  document.getElementById('cap-aftertaste').textContent = aftertaste;
+
+  // 별점 하트 구성 (붉은 하트 + 회색 하트)
+  let heartHtml = '';
+  for(let i=1; i<=5; i++){
+    if(i <= currentRating) {
+      heartHtml += '<span class="cap-heart-red">♥</span>';
+    } else {
+      heartHtml += '<span class="cap-heart-gray">♥</span>';
+    }
+  }
+  document.getElementById('cap-hearts').innerHTML = heartHtml;
+  document.getElementById('cap-note').textContent = note;
+
+  // 캡처 대상 엘리먼트
+  const target = document.getElementById('capture-render-target');
+
+  try {
+    if (document.fonts) {
+      await document.fonts.ready;
+    }
+    await new Promise(r => setTimeout(r, 200));
+
+    // html2canvas 실행 (선택한 글꼴 강제 연동)
+    const canvas = await html2canvas(target, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#f5f3ed',
+      logging: false,
+      onclone: (clonedDoc) => {
+        const selectedFont = fontSelect.value;
+        const clonedTarget = clonedDoc.getElementById('capture-render-target');
+        if (clonedTarget) {
+          clonedTarget.style.fontFamily = selectedFont;
+          const allEls = clonedTarget.querySelectorAll('*');
+          allEls.forEach(e => e.style.fontFamily = selectedFont);
+        }
+      }
+    });
+
+    const img = document.getElementById('captured-img');
+    img.src = canvas.toDataURL('image/png');
+    document.getElementById('modal-capture').classList.add('show');
+  } catch(e) {
+    console.error(e);
+    alert('이미지 생성 중 오류가 발생했습니다. 다시 시도해 주세요.');
+  }
+};
+
+document.getElementById('modal-close').onclick = () => {
+  document.getElementById('modal-capture').classList.remove('show');
+};
+
+// 초기화
+renderRecords();
+</script>
+
+</body>
+</html>
